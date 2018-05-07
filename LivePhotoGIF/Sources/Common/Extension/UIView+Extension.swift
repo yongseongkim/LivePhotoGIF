@@ -10,9 +10,9 @@ import UIKit
 
 extension UIView {
     func isNear(position: CGPoint) -> Bool {
-        return CGRect(x: self.frame.origin.x - 7,
-                      y: self.frame.origin.y - 7,
-                      width: self.frame.size.width + 14,
-                      height: self.frame.size.height + 14).contains(position)
+        return CGRect(x: self.frame.origin.x - 10,
+                      y: self.frame.origin.y - 10,
+                      width: self.frame.size.width + 20,
+                      height: self.frame.size.height + 20).contains(position)
     }
 }

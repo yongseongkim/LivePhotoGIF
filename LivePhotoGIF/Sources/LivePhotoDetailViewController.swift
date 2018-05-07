@@ -8,41 +8,12 @@
 
 import UIKit
 import Photos
-import Then
 import SnapKit
 import RxSwift
 import RxCocoa
 import RxGesture
 import AVKit
 import SwiftyGif
-
-class LivePhotoFrameImageCell: UICollectionViewCell {
-    static var space: CGFloat {
-        return 0
-    }
-    static var numberOfCellInRow: CGFloat {
-        return 8
-    }
-    static var size: CGSize {
-        let width = (LivePhotoDetailViewController.thumbnailCollectionWidth - (LivePhotoFrameImageCell.space * (LivePhotoFrameImageCell.numberOfCellInRow - 1))) / LivePhotoFrameImageCell.numberOfCellInRow
-        return CGSize(width: width, height: width)
-    }
-    
-    let imageView = UIImageView()
-    
-    override init(frame: CGRect) {
-        super.init(frame: frame)
-        addSubview(imageView)
-        imageView.contentMode = .scaleAspectFill
-        imageView.snp.makeConstraints { (make) in
-            make.top.left.bottom.right.equalTo(self)
-        }
-    }
-    
-    required init?(coder aDecoder: NSCoder) {
-        fatalError("init(coder:) has not been implemented")
-    }
-}
 
 class LivePhotoDetailViewController: UIViewController {
     static var contentWidth: CGFloat {
@@ -113,6 +84,18 @@ class LivePhotoDetailViewController: UIViewController {
         loadResource()
     }
     
+    override func viewDidAppear(_ animated: Bool) {
+        super.viewDidAppear(animated)
+        thumbnailStartView.frame = CGRect(x: 0,
+                                          y: 0,
+                                          width: LivePhotoDetailViewController.thumbnailLineViewWidth,
+                                          height: LivePhotoFrameImageCell.size.height)
+        thumbnailEndView.frame = CGRect(x: thumbnailView.frame.width - LivePhotoDetailViewController.thumbnailLineViewWidth,
+                                        y: 0,
+                                        width: LivePhotoDetailViewController.thumbnailLineViewWidth,
+                                        height: LivePhotoFrameImageCell.size.height)
+    }
+    
     private func configureUI() {
         let blurEffect = UIBlurEffect(style: UIBlurEffectStyle.dark)
         let blurEffectView = UIVisualEffectView(effect: blurEffect)
@@ -181,13 +164,11 @@ class LivePhotoDetailViewController: UIViewController {
             make.width.equalTo(LivePhotoDetailViewController.thumbnailCollectionWidth)
             make.height.equalTo(LivePhotoFrameImageCell.size.height)
         }
-        thumbnailStartView.backgroundColor = UIColor.yellow
+        thumbnailStartView.backgroundColor = UIColor.gray145
         thumbnailStartView.isUserInteractionEnabled = false
-        thumbnailStartView.frame = CGRect(x: 0, y: 0, width: LivePhotoDetailViewController.thumbnailLineViewWidth, height: LivePhotoFrameImageCell.size.height)
         thumbnailView.addSubview(thumbnailStartView)
-        thumbnailEndView.backgroundColor = UIColor.yellow
+        thumbnailEndView.backgroundColor = UIColor.gray145
         thumbnailEndView.isUserInteractionEnabled = false
-        thumbnailEndView.frame = CGRect(x: 100, y: 0, width: LivePhotoDetailViewController.thumbnailLineViewWidth, height: LivePhotoFrameImageCell.size.height)
         thumbnailView.addSubview(thumbnailEndView)
         
         optionView.addSubview(patternButton)
@@ -257,8 +238,13 @@ class LivePhotoDetailViewController: UIViewController {
     private func bind() {
         // UI Binding
         thumbnailView.rx.panGesture().subscribe(onNext: { [weak self] (recognizer) in
-            guard let `self` = self else { return }
+            guard let `self` = self, let resource = self.resource.value else { return }
             let position = recognizer.location(in: self.thumbnailView)
+            let minimumSpace: CGFloat = 20
+            let width = LivePhotoDetailViewController.thumbnailLineViewWidth
+            var centerX = position.x - width / 2
+            var minX = centerX - width / 2
+            var maxX = centerX + width / 2
             switch recognizer.state {
             case .began:
                 if self.thumbnailStartView.isNear(position: position) {
@@ -268,35 +254,48 @@ class LivePhotoDetailViewController: UIViewController {
                     self.isEndDragging = true
                 }
             case .changed:
-                let minimumSpace: CGFloat = 20
-                let halfOfWidth = LivePhotoDetailViewController.thumbnailLineViewWidth / 2
                 if self.isStartDragging {
-                    var centerX = position.x - halfOfWidth
-                    // minX
-                    if centerX - halfOfWidth < 0 {
-                        centerX = halfOfWidth
+                    if minX < 0 {
+                        minX = 0
+                        centerX = width / 2
+                        maxX = width
                     }
-                    // maxX
-                    if centerX + halfOfWidth > self.thumbnailEndView.frame.minX - minimumSpace {
-                        centerX = self.thumbnailEndView.frame.minX - minimumSpace - halfOfWidth
+                    if maxX > self.thumbnailEndView.frame.minX - minimumSpace {
+                        minX = self.thumbnailEndView.frame.minX - minimumSpace - width
+                        centerX = self.thumbnailEndView.frame.minX - minimumSpace - width / 2
+                        maxX = self.thumbnailEndView.frame.minX - minimumSpace
                     }
-                    self.thumbnailStartView.frame = CGRect(x: centerX - halfOfWidth, y: 0, width: self.thumbnailStartView.frame.width, height: self.thumbnailStartView.frame.height)
+                    self.thumbnailStartView.frame = CGRect(x: minX, y: 0, width: self.thumbnailStartView.frame.width, height: self.thumbnailStartView.frame.height)
+                    let imageIdx = Int(((maxX - width) / self.thumbnailCollectionView.frame.width) * CGFloat(resource.images.count))
+                    self.imageView.stopAnimating()
+                    self.imageView.image = resource.images[imageIdx]
                 }
                 if self.isEndDragging {
-                    var centerX = position.x - halfOfWidth
-                    // minX
-                    if centerX - halfOfWidth < self.thumbnailStartView.frame.maxX + minimumSpace {
-                        centerX = self.thumbnailStartView.frame.maxX + minimumSpace + halfOfWidth
+                    if minX < self.thumbnailStartView.frame.maxX + minimumSpace {
+                        minX = self.thumbnailStartView.frame.maxX + minimumSpace
+                        centerX = self.thumbnailStartView.frame.maxX + minimumSpace + width / 2
+                        maxX = self.thumbnailStartView.frame.maxX + minimumSpace + width
                     }
-                    // maxX
-                    if centerX + halfOfWidth > self.thumbnailView.frame.size.width {
-                        centerX = self.thumbnailView.frame.size.width - halfOfWidth
+                    if maxX > self.thumbnailView.frame.size.width {
+                        minX = self.thumbnailView.frame.size.width - width
+                        centerX = self.thumbnailView.frame.size.width - width / 2
+                        maxX = self.thumbnailView.frame.size.width
                     }
-                    self.thumbnailEndView.frame = CGRect(x: centerX - halfOfWidth, y: 0, width: self.thumbnailEndView.frame.width, height: self.thumbnailEndView.frame.height)
+                    self.thumbnailEndView.frame = CGRect(x: minX, y: 0, width: self.thumbnailEndView.frame.width, height: self.thumbnailEndView.frame.height)
+                    let imageIdx = Int(((minX - width) / self.thumbnailCollectionView.frame.width) * CGFloat(resource.images.count))
+                    self.imageView.stopAnimating()
+                    self.imageView.image = resource.images[imageIdx]
                 }
             case .ended:
                 self.isStartDragging = false
                 self.isEndDragging = false
+                let startImageIdx = Int(((self.thumbnailStartView.frame.maxX - width) / self.thumbnailCollectionView.frame.width) * CGFloat(resource.images.count))
+                let endImageIdx = Int(((self.thumbnailEndView.frame.minX - width) / self.thumbnailCollectionView.frame.width) * CGFloat(resource.images.count))
+                let newImages = resource.images.slices(from: startImageIdx, to: endImageIdx)
+                let newDuration = Double(newImages.count) / Double(resource.images.count) * Double(resource.duration)
+                self.imageView.animationImages = newImages
+                self.imageView.animationDuration = TimeInterval(newDuration)
+                self.imageView.startAnimating()
             default:
                 self.isStartDragging = false
                 self.isEndDragging = false
@@ -393,7 +392,7 @@ class LivePhotoDetailViewController: UIViewController {
                                 height = UIScreen.size.height / 2
                             }
                             let width = image.size.width / image.size.height * height
-                            self.imageView.snp.makeConstraints({ (make) in
+                            self.imageView.snp.updateConstraints({ (make) in
                                 make.width.equalTo(width)
                                 make.height.equalTo(height)
                             })
