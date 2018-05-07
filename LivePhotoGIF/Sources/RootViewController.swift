@@ -29,7 +29,9 @@ class LivePhotoCell: UICollectionViewCell {
     
     override init(frame: CGRect) {
         super.init(frame: frame)
+        clipsToBounds = true
         addSubview(imageView)
+        imageView.contentMode = .scaleAspectFill
         imageView.snp.makeConstraints { (make) in
             make.top.left.bottom.right.equalTo(self)
         }

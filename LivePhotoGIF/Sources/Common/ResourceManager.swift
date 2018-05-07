@@ -34,49 +34,11 @@ class ResourceManager {
         case noDestination
         case unknown
     }
-    
-    static let photoDirPath = URL.documentsPath.appending("/photo/")
+
     static let videoDirPath = URL.documentsPath.appending("/video/")
     static let gifDirPath = URL.documentsPath.appending("/gif/")
     
-    static func representativPhoto(from: PHAssetResource, completion: @escaping ((UIImage?, Error?) -> ())) {
-        if !FileManager.default.fileExists(atPath: ResourceManager.photoDirPath) {
-            try? FileManager.default.createDirectory(atPath: ResourceManager.photoDirPath, withIntermediateDirectories: true, attributes: nil)
-        }
-        let photoSource = ResourceManager.photoDirPath.appending(from.originalFilename)
-        let photoURL = URL(fileURLWithPath: photoSource)
-        let options = PHAssetResourceRequestOptions()
-        options.isNetworkAccessAllowed = true
-        
-        let handlePhotoFile: ((Error?) -> ()) = { (error) in
-            if let error = error {
-                print(error)
-                DispatchQueue.main.async {
-                    completion(nil, error)
-                }
-                return
-            }
-            if let data = try? Data(contentsOf: photoURL), let image = UIImage(data: data) {
-                DispatchQueue.main.async {
-                    completion(image, nil)
-                }
-                return
-            }
-            DispatchQueue.main.async {
-                completion(nil, RepresentativPhoto.unknown)
-            }
-        }
-        if FileManager.default.fileExists(atPath: photoSource) {
-            handlePhotoFile(nil)
-        } else {
-            PHAssetResourceManager.default()
-                .writeData(for: from, toFile: photoURL, options: options) { (error) in
-                    handlePhotoFile(error)
-            }
-        }
-    }
-    
-    static func extractImages(from: PHAssetResource, progress: ((Double)->())?, completion: @escaping (([UIImage]?, Int64?, Error?) ->())) {
+    static func extractImages(from: PHAssetResource, progress: ((Double)->())?, completion: @escaping ((URL?, [UIImage]?, Int64?, Error?) ->())) {
         if !FileManager.default.fileExists(atPath: ResourceManager.videoDirPath) {
             try? FileManager.default.createDirectory(atPath: ResourceManager.videoDirPath, withIntermediateDirectories: true, attributes: nil)
         }
@@ -91,9 +53,8 @@ class ResourceManager {
         
         let handleVideoFile: ((Error?) -> ()) = { (error) in
             if let error = error {
-                print(error)
                 DispatchQueue.main.async {
-                    completion(nil, nil, error)
+                    completion(nil, nil, nil, error)
                 }
                 return
             }
@@ -112,23 +73,21 @@ class ResourceManager {
             let times = ResourceManager.times(frameRate: Int32(frameRate), duration: duration)
             var requestCount: Int = 0
             var images = [UIImage]()
-            
             // for requesting all frames
             imageGenerator.requestedTimeToleranceAfter = kCMTimeZero;
             imageGenerator.requestedTimeToleranceBefore = kCMTimeZero;
             imageGenerator.generateCGImagesAsynchronously(forTimes: times) { (requestedTime, imageRef, actualTime, result, error) in
                 requestCount = requestCount + 1
-                if times.count == requestCount {
-                    DispatchQueue.main.async {
-                        completion(images, duration, nil)
-                    }
-                }
                 if let error = error {
                     print(error)
-                    return
                 }
                 if let imageRef = imageRef {
                     images.append(UIImage(cgImage: imageRef))
+                }
+                if times.count == requestCount {
+                    DispatchQueue.main.async {
+                        completion(videoURL, images, duration, nil)
+                    }
                 }
             }
         }

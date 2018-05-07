@@ -10,6 +10,7 @@ target 'LivePhotoGIF' do
   pod 'RealmSwift'
   pod 'RxSwift'
   pod 'RxCocoa'
+  pod 'RxGesture'
   pod 'SwiftyGif'
   
   # Report

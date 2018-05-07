@@ -21,6 +21,7 @@
 		4D3B6CCF209EBCE2005F9573 /* LivePhotoDetailViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4D3B6CC2209EBCE1005F9573 /* LivePhotoDetailViewController.swift */; };
 		4D3B6CD0209EBCE2005F9573 /* Info.plist in Resources */ = {isa = PBXBuildFile; fileRef = 4D3B6CC3209EBCE1005F9573 /* Info.plist */; };
 		4D3B6CD2209EF197005F9573 /* UIColor+Extension.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4D3B6CD1209EF197005F9573 /* UIColor+Extension.swift */; };
+		4D6243C720A0125A0082A9AA /* UIView+Extension.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4D6243C620A0125A0082A9AA /* UIView+Extension.swift */; };
 		999C094C9216A5EA68BB1A33 /* Pods_LivePhotoGIF.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = BC7C150C5ED0DE542720623D /* Pods_LivePhotoGIF.framework */; };
 /* End PBXBuildFile section */
 
@@ -39,6 +40,7 @@
 		4D3B6CC2209EBCE1005F9573 /* LivePhotoDetailViewController.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = LivePhotoDetailViewController.swift; sourceTree = "<group>"; };
 		4D3B6CC3209EBCE1005F9573 /* Info.plist */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
 		4D3B6CD1209EF197005F9573 /* UIColor+Extension.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "UIColor+Extension.swift"; sourceTree = "<group>"; };
+		4D6243C620A0125A0082A9AA /* UIView+Extension.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "UIView+Extension.swift"; sourceTree = "<group>"; };
 		4D668EFC2095ABDC0007E599 /* LivePhotoGIF.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = LivePhotoGIF.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		53EFBF0021C0F1D88BCBC4BD /* Pods-LivePhotoGIF.debug.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-LivePhotoGIF.debug.xcconfig"; path = "Pods/Target Support Files/Pods-LivePhotoGIF/Pods-LivePhotoGIF.debug.xcconfig"; sourceTree = "<group>"; };
 		93AC5503A9786BE9E1BDF235 /* Pods-Gifely.debug.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-Gifely.debug.xcconfig"; path = "Pods/Target Support Files/Pods-Gifely/Pods-Gifely.debug.xcconfig"; sourceTree = "<group>"; };
@@ -117,6 +119,7 @@
 				4D3B6CBE209EBCE1005F9573 /* UIScreen+Extension.swift */,
 				4D3B6CBF209EBCE1005F9573 /* UICollectionView+Extension.swift */,
 				4D3B6CD1209EF197005F9573 /* UIColor+Extension.swift */,
+				4D6243C620A0125A0082A9AA /* UIView+Extension.swift */,
 			);
 			path = Extension;
 			sourceTree = "<group>";
@@ -252,6 +255,7 @@
 				"${BUILT_PRODUCTS_DIR}/Realm/Realm.framework",
 				"${BUILT_PRODUCTS_DIR}/RealmSwift/RealmSwift.framework",
 				"${BUILT_PRODUCTS_DIR}/RxCocoa/RxCocoa.framework",
+				"${BUILT_PRODUCTS_DIR}/RxGesture/RxGesture.framework",
 				"${BUILT_PRODUCTS_DIR}/RxSwift/RxSwift.framework",
 				"${BUILT_PRODUCTS_DIR}/SnapKit/SnapKit.framework",
 				"${BUILT_PRODUCTS_DIR}/SwiftyGif/SwiftyGif.framework",
@@ -265,6 +269,7 @@
 				"${TARGET_BUILD_DIR}/${FRAMEWORKS_FOLDER_PATH}/Realm.framework",
 				"${TARGET_BUILD_DIR}/${FRAMEWORKS_FOLDER_PATH}/RealmSwift.framework",
 				"${TARGET_BUILD_DIR}/${FRAMEWORKS_FOLDER_PATH}/RxCocoa.framework",
+				"${TARGET_BUILD_DIR}/${FRAMEWORKS_FOLDER_PATH}/RxGesture.framework",
 				"${TARGET_BUILD_DIR}/${FRAMEWORKS_FOLDER_PATH}/RxSwift.framework",
 				"${TARGET_BUILD_DIR}/${FRAMEWORKS_FOLDER_PATH}/SnapKit.framework",
 				"${TARGET_BUILD_DIR}/${FRAMEWORKS_FOLDER_PATH}/SwiftyGif.framework",
@@ -298,6 +303,7 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				4D6243C720A0125A0082A9AA /* UIView+Extension.swift in Sources */,
 				4D3B6CCE209EBCE2005F9573 /* AppDelegate.swift in Sources */,
 				4D3B6CCC209EBCE2005F9573 /* UICollectionView+Extension.swift in Sources */,
 				4D3B6CCA209EBCE2005F9573 /* String+Extension.swift in Sources */,

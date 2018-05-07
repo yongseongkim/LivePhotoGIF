@@ -30,6 +30,9 @@ PODS:
     - Realm (= 3.3.2)
   - RxCocoa (4.1.2):
     - RxSwift (~> 4.0)
+  - RxGesture (1.2.1):
+    - RxCocoa (~> 4.0)
+    - RxSwift (~> 4.0)
   - RxSwift (4.1.2)
   - SnapKit (4.0.0)
   - SwiftyGif (4.1.0)
@@ -42,6 +45,7 @@ DEPENDENCIES:
   - Firebase/Core
   - RealmSwift
   - RxCocoa
+  - RxGesture
   - RxSwift
   - SnapKit
   - SwiftyGif
@@ -60,11 +64,12 @@ SPEC CHECKSUMS:
   Realm: d927fbf66df5532cfafc08afb5f7e53ded37b894
   RealmSwift: 4e903a494e05d866581d69ad6f7e7b879d446baf
   RxCocoa: d88ba0f1f6abf040011a9eb4b539324fc426843a
+  RxGesture: c278eb05b187abd47e11e65464ae4de53ab71d95
   RxSwift: e49536837d9901277638493ea537394d4b55f570
   SnapKit: a42d492c16e80209130a3379f73596c3454b7694
   SwiftyGif: d36c6dfb52e2ca1e48fe349d225f50ec4123ec85
   Then: ee21c97b85ff6062b9b0080c9abb1eea46743345
 
-PODFILE CHECKSUM: 4d1061450312ca83ea6de944d63c69b791cb0ca8
+PODFILE CHECKSUM: 51a9db47e60087cff17150cbe65a3cecf8ab7b17
 
 COCOAPODS: 1.4.0
