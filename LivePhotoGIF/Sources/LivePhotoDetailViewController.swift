@@ -33,10 +33,30 @@ class LivePhotoDetailViewController: UIViewController {
     }
     struct Resource {
         let images: [UIImage]
-        let duration: Int64
+        let duration: Double
         let pattern: PlayPattern
         let speed: Float
-        let fileName: String
+        let quality: ImageQuality
+        
+        init(images: [UIImage], duration: Double, pattern: PlayPattern, speed: Float, quality: ImageQuality) {
+            switch pattern {
+            case .forward:
+                self.images = images
+                self.duration = duration
+            case .backward:
+                self.images = images.reversed()
+                self.duration = duration
+            case .forwardbackward:
+                self.images = images + images.reversed()
+                self.duration = duration * 2
+            case .backwardforward:
+                self.images = images.reversed() + images
+                self.duration = duration * 2
+            }
+            self.pattern = pattern
+            self.speed = speed
+            self.quality = quality
+        }
     }
     
     private let mainView = UIView()
@@ -50,6 +70,7 @@ class LivePhotoDetailViewController: UIViewController {
     private let thumbnailEndView = UIView()
     private let patternButton = UIButton()
     private let speedButton = UIButton()
+    private let qualityButton = UIButton()
     
     private let buttonsView = UIView()
     private let exportButton = UIButton()
@@ -57,9 +78,13 @@ class LivePhotoDetailViewController: UIViewController {
     
     private let assetIdentifier: String
     private let disposeBag = DisposeBag()
-    private let resource = Variable<Resource?>(nil)
+    private let exportResource = Variable<Resource?>(nil)
+    
+    private var images = [UIImage]()
+    private var duration: Int64 = 0
+    private var fileName = "result"
     private var numberOfVisibleFrames: Int {
-        var frames = resource.value?.images.count ?? 0
+        var frames = images.count
         if frames > Int(LivePhotoFrameImageCell.numberOfCellInRow) {
             frames = Int(LivePhotoFrameImageCell.numberOfCellInRow)
         }
@@ -172,7 +197,7 @@ class LivePhotoDetailViewController: UIViewController {
         thumbnailView.addSubview(thumbnailEndView)
         
         optionView.addSubview(patternButton)
-        patternButton.setTitle("FORWARD", for: .normal)
+        patternButton.setTitle(PlayPattern.forward.rawValue, for: .normal)
         patternButton.setTitleColor(UIColor.black, for: .normal)
         patternButton.setTitleColor(UIColor.gray220, for: .disabled)
         patternButton.contentHuggingPriority(for: .horizontal)
@@ -190,9 +215,21 @@ class LivePhotoDetailViewController: UIViewController {
         speedButton.contentCompressionResistancePriority(for: .horizontal)
         speedButton.snp.makeConstraints { (make) in
             make.top.equalTo(patternButton.snp.bottom)
+            make.left.right.equalTo(optionView)
+            make.height.equalTo(36)
+        }
+        optionView.addSubview(qualityButton)
+        qualityButton.setTitle(ImageQuality.high.rawValue, for: .normal)
+        qualityButton.setTitleColor(UIColor.black, for: .normal)
+        qualityButton.setTitleColor(UIColor.gray220, for: .disabled)
+        qualityButton.contentHuggingPriority(for: .horizontal)
+        qualityButton.contentCompressionResistancePriority(for: .horizontal)
+        qualityButton.snp.makeConstraints { (make) in
+            make.top.equalTo(speedButton.snp.bottom)
             make.height.equalTo(36)
             make.left.right.bottom.equalTo(optionView)
         }
+        
         buttonsView.addSubview(exportButton)
         exportButton.setTitle("EXPORT", for: .normal)
         exportButton.setTitleColor(UIColor.black, for: .normal)
@@ -238,7 +275,7 @@ class LivePhotoDetailViewController: UIViewController {
     private func bind() {
         // UI Binding
         thumbnailView.rx.panGesture().subscribe(onNext: { [weak self] (recognizer) in
-            guard let `self` = self, let resource = self.resource.value else { return }
+            guard let `self` = self, let previousExportResource = self.exportResource.value else { return }
             let position = recognizer.location(in: self.thumbnailView)
             let minimumSpace: CGFloat = 20
             let width = LivePhotoDetailViewController.thumbnailLineViewWidth
@@ -266,9 +303,12 @@ class LivePhotoDetailViewController: UIViewController {
                         maxX = self.thumbnailEndView.frame.minX - minimumSpace
                     }
                     self.thumbnailStartView.frame = CGRect(x: minX, y: 0, width: self.thumbnailStartView.frame.width, height: self.thumbnailStartView.frame.height)
-                    let imageIdx = Int(((maxX - width) / self.thumbnailCollectionView.frame.width) * CGFloat(resource.images.count))
+                    var imageIdx = Int(((maxX - width) / self.thumbnailCollectionView.frame.width) * CGFloat(self.images.count))
+                    if imageIdx < 0 {
+                        imageIdx = 0
+                    }
                     self.imageView.stopAnimating()
-                    self.imageView.image = resource.images[imageIdx]
+                    self.imageView.image = self.images[imageIdx]
                 }
                 if self.isEndDragging {
                     if minX < self.thumbnailStartView.frame.maxX + minimumSpace {
@@ -282,20 +322,28 @@ class LivePhotoDetailViewController: UIViewController {
                         maxX = self.thumbnailView.frame.size.width
                     }
                     self.thumbnailEndView.frame = CGRect(x: minX, y: 0, width: self.thumbnailEndView.frame.width, height: self.thumbnailEndView.frame.height)
-                    let imageIdx = Int(((minX - width) / self.thumbnailCollectionView.frame.width) * CGFloat(resource.images.count))
+                    var imageIdx = Int(((minX - width) / self.thumbnailCollectionView.frame.width) * CGFloat(self.images.count))
+                    if imageIdx > self.images.count - 1 {
+                        imageIdx = self.images.count - 1
+                    }
                     self.imageView.stopAnimating()
-                    self.imageView.image = resource.images[imageIdx]
+                    self.imageView.image = self.images[imageIdx]
                 }
             case .ended:
                 self.isStartDragging = false
                 self.isEndDragging = false
-                let startImageIdx = Int(((self.thumbnailStartView.frame.maxX - width) / self.thumbnailCollectionView.frame.width) * CGFloat(resource.images.count))
-                let endImageIdx = Int(((self.thumbnailEndView.frame.minX - width) / self.thumbnailCollectionView.frame.width) * CGFloat(resource.images.count))
-                let newImages = resource.images.slices(from: startImageIdx, to: endImageIdx)
-                let newDuration = Double(newImages.count) / Double(resource.images.count) * Double(resource.duration)
+                let startImageIdx = Int(((self.thumbnailStartView.frame.maxX - width) / self.thumbnailCollectionView.frame.width) * CGFloat(self.images.count))
+                let endImageIdx = Int(((self.thumbnailEndView.frame.minX - width) / self.thumbnailCollectionView.frame.width) * CGFloat(self.images.count))
+                let newImages = self.images.slices(from: startImageIdx, to: endImageIdx)
+                let newDuration = Double(newImages.count) / Double(self.images.count) * Double(self.duration)
                 self.imageView.animationImages = newImages
                 self.imageView.animationDuration = TimeInterval(newDuration)
                 self.imageView.startAnimating()
+                self.exportResource.value = Resource(images: newImages,
+                                                     duration: newDuration,
+                                                     pattern: previousExportResource.pattern,
+                                                     speed: previousExportResource.speed,
+                                                     quality: previousExportResource.quality)
             default:
                 self.isStartDragging = false
                 self.isEndDragging = false
@@ -304,35 +352,73 @@ class LivePhotoDetailViewController: UIViewController {
         }).disposed(by: disposeBag)
         patternButton.rx.tap.subscribe(onNext: { [weak self] (_) in
             let patternList = LivePhotoDetailViewController.patternList
-            guard let `self` = self, let resource = self.resource.value else { return }
+            guard let `self` = self, let resource = self.exportResource.value else { return }
             guard let patternIdx = patternList.index(of: resource.pattern) else { return }
-            self.resource.value = Resource(images: resource.images,
-                                           duration: resource.duration,
-                                           pattern: patternList[(patternIdx + 1) % patternList.count],
-                                           speed: resource.speed,
-                                           fileName: resource.fileName)
+            let pattern = patternList[(patternIdx + 1) % patternList.count]
+            self.patternButton.setTitle(pattern.rawValue, for: .normal)
+            self.exportResource.value = Resource(images: resource.images,
+                                                 duration: resource.duration,
+                                                 pattern: pattern,
+                                                 speed: resource.speed,
+                                                 quality: resource.quality)
         }).disposed(by: disposeBag)
         speedButton.rx.tap.subscribe(onNext: { [weak self] (_) in
             let speedList = LivePhotoDetailViewController.speedList
-            guard let `self` = self, let resource = self.resource.value else { return }
+            guard let `self` = self, let resource = self.exportResource.value else { return }
             guard let speedIdx = speedList.index(of: resource.speed) else { return }
-            self.resource.value = Resource(images: resource.images,
-                                           duration: resource.duration,
-                                           pattern: resource.pattern,
-                                           speed: speedList[(speedIdx + 1) % speedList.count],
-                                           fileName: resource.fileName)
+            let speed = speedList[(speedIdx + 1) % speedList.count]
+            self.speedButton.setTitle(String(speed), for: .normal)
+            self.exportResource.value = Resource(images: resource.images,
+                                                 duration: resource.duration,
+                                                 pattern: resource.pattern,
+                                                 speed: speed,
+                                                 quality: resource.quality)
+        }).disposed(by: disposeBag)
+        qualityButton.rx.tap.subscribe(onNext: { [weak self] (_) in
+            guard let `self` = self, let resource = self.exportResource.value else { return }
+            let quality: ImageQuality
+            switch resource.quality {
+            case .high:
+                quality = .low
+            case .low:
+                quality = .high
+            }
+            self.qualityButton.setTitle(quality.rawValue, for: .normal)
+            self.exportResource.value = Resource(images: resource.images,
+                                                 duration: resource.duration,
+                                                 pattern: resource.pattern,
+                                                 speed: resource.speed,
+                                                 quality: quality)
         }).disposed(by: disposeBag)
         exportButton.rx.tap.subscribe(onNext: { [weak self] (_) in
-            guard let `self` = self, let resource = self.resource.value else { return }
+            guard let `self` = self, let resource = self.exportResource.value else { return }
             self.deactiveButtons()
             let duration = (Float(resource.duration) / resource.speed)
-            let fileName = String.init(format: "%@_%f", resource.fileName, resource.speed * 10)
+            let fileName = String.init(format: "%@_%f", self.fileName, resource.speed * 10)
             ResourceManager.createGIF(with: GIFResource(images: resource.images,
                                                         delayTime: duration / Float(resource.images.count),
                                                         loopCount: 0,
                                                         pattern: resource.pattern,
+                                                        quality: resource.quality,
                                                         detinationFileName: fileName)) { [weak self] (url, error) in
                                                             guard let url = url else { return }
+                                                            let filePath = url.path
+                                                            var fileSize : UInt64
+                                                            
+                                                            do {
+                                                                //return [FileAttributeKey : Any]
+                                                                let attr = try FileManager.default.attributesOfItem(atPath: filePath)
+                                                                fileSize = attr[FileAttributeKey.size] as! UInt64
+                                                                
+                                                                //if you convert to NSDictionary, you can get file size old way as well.
+                                                                let dict = attr as NSDictionary
+                                                                fileSize = dict.fileSize()
+                                                                print(String(format: "%fKB", Double(fileSize) / 1024))
+                                                                print(String(format: "%fMB", Double(fileSize) / (1024 * 1024)))
+                                                            } catch {
+                                                                print("Error: \(error)")
+                                                            }
+
                                                             let items = [url]
                                                             let activityViewController = UIActivityViewController(activityItems: items, applicationActivities: nil)
                                                             self?.present(activityViewController, animated: true, completion: {
@@ -345,20 +431,9 @@ class LivePhotoDetailViewController: UIViewController {
         }).disposed(by: disposeBag)
         
         // Properties Binding
-        resource.asObservable()
+        exportResource.asObservable()
             .subscribe(onNext: { [weak self] (resource) in
                 guard let `self` = self, let resource = resource else { return }
-                self.speedButton.setTitle(String(resource.speed), for: .normal)
-                switch resource.pattern {
-                case .forward:
-                    self.patternButton.setTitle("FORWARD", for: .normal)
-                case .backward:
-                    self.patternButton.setTitle("BACKWARD", for: .normal)
-                case .forwardbackward:
-                    self.patternButton.setTitle("FORWARDBACKWARD", for: .normal)
-                case .backwardforward:
-                    self.patternButton.setTitle("BACKWARDFORWARD", for: .normal)
-                }
                 self.thumbnailCollectionView.reloadData()
                 self.imageView.animationImages = resource.images
                 self.imageView.animationDuration = TimeInterval(Float(resource.duration) / resource.speed)
@@ -409,21 +484,29 @@ class LivePhotoDetailViewController: UIViewController {
         }
         if let videoResource = videoResource {
             // load video file from live photo
-            ResourceManager.extractImages(from: videoResource,
-                                          progress: { (progress) in
-                                            // download progress from iCloud
-                                            print(progress)
-            },
-                                          completion: { [weak self] (videoURL, images, duration, error) in
-                                            guard let `self` = self, let videoURL = videoURL, let images = images, let duration = duration else { return }
-                                            try? FileManager.default.removeItem(at: videoURL)
-                                            self.resource.value = Resource(images: images,
-                                                                           duration: duration,
-                                                                           pattern: LivePhotoDetailViewController.patternList.first!,
-                                                                           speed: LivePhotoDetailViewController.speedList.first!,
-                                                                           fileName: videoResource.originalFilename.fileName)
-                                            self.activeButtons()
-            })
+            ResourceManager.rx
+                .extractImages(from: videoResource, quality: .high)
+                .subscribe(onNext: { [weak self] (state) in
+                    guard let `self` = self else { return }
+                    switch state {
+                    case .inProgress(let progress):
+                        print(progress)
+                    case .success(let result):
+                        guard let videoURL = result["url"] as? URL, let images = result["images"] as? [UIImage], let duration = result["duration"] as? Int64 else { return }
+                        try? FileManager.default.removeItem(at: videoURL)
+                        self.images = images
+                        self.duration = duration
+                        self.fileName = videoResource.originalFilename.fileName
+                        self.exportResource.value = Resource(images: images,
+                                                             duration: Double(duration),
+                                                             pattern: LivePhotoDetailViewController.patternList.first!,
+                                                             speed: LivePhotoDetailViewController.speedList.first!,
+                                                             quality: .high)
+                        self.activeButtons()
+                    case .failure(let error):
+                        print(error)
+                    }
+                }).disposed(by: disposeBag)
         } else {
             let alert = UIAlertController(title: "Error", message: "There are no resources.", preferredStyle: .alert)
             alert.addAction(UIAlertAction(title: "Confirm", style: .cancel) { [weak self] (action) in
@@ -436,12 +519,14 @@ class LivePhotoDetailViewController: UIViewController {
     private func activeButtons() {
         patternButton.isEnabled = true
         speedButton.isEnabled = true
+        qualityButton.isEnabled = true
         exportButton.isEnabled = true
     }
     
     private func deactiveButtons() {
         patternButton.isEnabled = false
         speedButton.isEnabled = false
+        qualityButton.isEnabled = false
         exportButton.isEnabled = false
     }
 }
@@ -452,13 +537,12 @@ extension LivePhotoDetailViewController: UICollectionViewDataSource, UICollectio
     }
     
     func collectionView(_ collectionView: UICollectionView, cellForItemAt indexPath: IndexPath) -> UICollectionViewCell {
-        guard let resource = self.resource.value else { return UICollectionViewCell() }
         let cell = collectionView.deqeueResuableCell(forIndexPath: indexPath) as LivePhotoFrameImageCell
-        var multiple = resource.images.count / numberOfVisibleFrames
+        var multiple = images.count / numberOfVisibleFrames
         if multiple == 0 {
             multiple = 1
         }
-        cell.imageView.image = resource.images[indexPath.row * multiple]
+        cell.imageView.image = images[indexPath.row * multiple]
         return cell
     }
     

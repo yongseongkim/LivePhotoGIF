@@ -10,12 +10,18 @@ import Foundation
 import Photos
 import AVKit
 import MobileCoreServices
+import RxSwift
 
-enum PlayPattern {
-    case forward
-    case backward
-    case forwardbackward
-    case backwardforward
+enum PlayPattern: String {
+    case forward = "FORWARD"
+    case backward = "BACKWARD"
+    case forwardbackward = "FORWARDBACKWARD"
+    case backwardforward = "BACKWARDFORWARD"
+}
+
+enum ImageQuality: String {
+    case low = "LOW"
+    case high = "HIGH"
 }
 
 struct GIFResource {
@@ -23,6 +29,7 @@ struct GIFResource {
     let delayTime: Float
     let loopCount: Int
     let pattern: PlayPattern
+    let quality: ImageQuality
     let detinationFileName: String
 }
 
@@ -38,7 +45,7 @@ class ResourceManager {
     static let videoDirPath = URL.documentsPath.appending("/video/")
     static let gifDirPath = URL.documentsPath.appending("/gif/")
     
-    static func extractImages(from: PHAssetResource, progress: ((Double)->())?, completion: @escaping ((URL?, [UIImage]?, Int64?, Error?) ->())) {
+    static func extractImages(from: PHAssetResource, quality: ImageQuality, progressHandler: ((Double)->())?, completionHandler: @escaping ((URL?, [UIImage]?, Int64?, Error?) ->())) {
         if !FileManager.default.fileExists(atPath: ResourceManager.videoDirPath) {
             try? FileManager.default.createDirectory(atPath: ResourceManager.videoDirPath, withIntermediateDirectories: true, attributes: nil)
         }
@@ -49,12 +56,16 @@ class ResourceManager {
         let videoURL = URL(fileURLWithPath: videoSource)
         let options = PHAssetResourceRequestOptions()
         options.isNetworkAccessAllowed = true
-        options.progressHandler = progress
+        options.progressHandler = { (progressValue) in
+            if let phandler = progressHandler {
+                phandler(progressValue / 2)
+            }
+        }
         
         let handleVideoFile: ((Error?) -> ()) = { (error) in
             if let error = error {
                 DispatchQueue.main.async {
-                    completion(nil, nil, nil, error)
+                    completionHandler(nil, nil, nil, error)
                 }
                 return
             }
@@ -65,10 +76,16 @@ class ResourceManager {
             let naturalSize = track.naturalSize.applying(track.preferredTransform)
             let frameRate = track.nominalFrameRate
             
-            let ratio = abs(naturalSize.height) / abs(naturalSize.width)
             let imageGenerator = AVAssetImageGenerator(asset: avAsset)
             imageGenerator.appliesPreferredTrackTransform = true
-            imageGenerator.maximumSize = CGSize(width: UIScreen.width, height: ratio * UIScreen.width)
+            let width = abs(naturalSize.width)
+            let height = abs(naturalSize.height)
+            let basis = UIScreen.width
+            if width > height {
+                imageGenerator.maximumSize = CGSize(width: basis, height: (height / width) * basis)
+            } else {
+                imageGenerator.maximumSize = CGSize(width: (width / height) * basis, height: basis)
+            }
             
             let times = ResourceManager.times(frameRate: Int32(frameRate), duration: duration)
             var requestCount: Int = 0
@@ -78,6 +95,9 @@ class ResourceManager {
             imageGenerator.requestedTimeToleranceBefore = kCMTimeZero;
             imageGenerator.generateCGImagesAsynchronously(forTimes: times) { (requestedTime, imageRef, actualTime, result, error) in
                 requestCount = requestCount + 1
+                if let phandler = progressHandler {
+                    phandler(0.5 + 0.5 * (Double(requestCount) / Double(times.count)))
+                }
                 if let error = error {
                     print(error)
                 }
@@ -86,7 +106,7 @@ class ResourceManager {
                 }
                 if times.count == requestCount {
                     DispatchQueue.main.async {
-                        completion(videoURL, images, duration, nil)
+                        completionHandler(videoURL, images, duration, nil)
                     }
                 }
             }
@@ -103,37 +123,41 @@ class ResourceManager {
         }
     }
     
-    static func createGIF(with resource: GIFResource, completion: @escaping ((URL?, Error?) -> ())) {
+    static func createGIF(with resource: GIFResource, completionHandler: @escaping ((URL?, Error?) -> ())) {
         let fileProperties = [kCGImagePropertyGIFDictionary as String: [kCGImagePropertyGIFLoopCount as String: resource.loopCount]]
         let frameProperties = [kCGImagePropertyGIFDictionary as String: [kCGImagePropertyGIFDelayTime as String: resource.delayTime]]
         
-        var images = [UIImage]()
-        var fileName = ""
+        let fileName: String
         switch resource.pattern {
         case .forward:
-            images = resource.images
             fileName = resource.detinationFileName + ".gif"
         case .backward:
-            images = resource.images.reversed()
             fileName = resource.detinationFileName + "_backward.gif"
         case .forwardbackward:
-            images = resource.images + resource.images.reversed()
             fileName = resource.detinationFileName + "_forwardbackward.gif"
         case .backwardforward:
-            images = resource.images.reversed() + resource.images
             fileName = resource.detinationFileName + "_backwardforward.gif"
         }
+        
+        var images = resource.images
+        if resource.quality == .low {
+            var lowQualityImages = [UIImage]()
+            for image in images {
+                if let compressedData = UIImageJPEGRepresentation(image, 0), let compressedImage = UIImage(data: compressedData) {
+                    lowQualityImages.append(compressedImage)
+                }
+            }
+            images = lowQualityImages
+        }
+        
         let path = gifDirPath.appending(fileName)
         let url = URL(fileURLWithPath: path)
         if FileManager.default.fileExists(atPath: path) {
-            DispatchQueue.main.async {
-                completion(url, nil)
-            }
-            return
+            try? FileManager.default.removeItem(atPath: path)
         }
         guard let destination = CGImageDestinationCreateWithURL(url as CFURL, kUTTypeGIF, Int(images.count), nil) else {
             DispatchQueue.main.async {
-                completion(nil, CreateGIFError.noDestination)
+                completionHandler(nil, CreateGIFError.noDestination)
             }
             return
         }
@@ -145,9 +169,9 @@ class ResourceManager {
         }
         DispatchQueue.main.async {
             if CGImageDestinationFinalize(destination) {
-                completion(url, nil)
+                completionHandler(url, nil)
             } else {
-                completion(nil, CreateGIFError.unknown)
+                completionHandler(nil, CreateGIFError.unknown)
             }
         }
     }
@@ -161,5 +185,43 @@ class ResourceManager {
             }
         }
         return times
+    }
+}
+
+extension ResourceManager: ReactiveCompatible {}
+extension Reactive where Base: ResourceManager {
+    enum ResourceRequestState {
+        case inProgress(Double)
+        case success([String: Any])
+        case failure(Error)
+    }
+    
+    static func extractImages(from: PHAssetResource, quality: ImageQuality) -> Observable<ResourceRequestState> {
+        return Observable.create({ (observer) -> Disposable in
+            ResourceManager.extractImages(from: from,
+                                          quality: quality,
+                                          progressHandler: { (progress) in
+                                            observer.onNext(.inProgress(progress))
+            },
+                                          completionHandler: { (url, images, duration, error) in
+                                            if let error = error {
+                                                observer.onNext(.failure(error))
+                                            } else {
+                                                var result = [String: Any]()
+                                                if let url = url {
+                                                    result["url"] = url
+                                                }
+                                                if let images = images {
+                                                    result["images"] = images
+                                                }
+                                                if let duration = duration {
+                                                    result["duration"] = duration
+                                                }
+                                                observer.onNext(.success(result))
+                                            }
+                                            observer.onCompleted()
+            })
+            return Disposables.create()
+        })
     }
 }
