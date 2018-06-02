@@ -25,6 +25,7 @@
 		4D6243C920A0184A0082A9AA /* LivePhotoFrameImageCell.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4D6243C820A0184A0082A9AA /* LivePhotoFrameImageCell.swift */; };
 		4D6243CB20A018770082A9AA /* LivePhotoCell.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4D6243CA20A018770082A9AA /* LivePhotoCell.swift */; };
 		4D6243CD20A01DB40082A9AA /* Array+Extension.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4D6243CC20A01DB40082A9AA /* Array+Extension.swift */; };
+		4DB4294120C2A184001BFE01 /* LivePhotoDetailSelectButton.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4DB4294020C2A184001BFE01 /* LivePhotoDetailSelectButton.swift */; };
 		999C094C9216A5EA68BB1A33 /* Pods_LivePhotoGIF.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = BC7C150C5ED0DE542720623D /* Pods_LivePhotoGIF.framework */; };
 /* End PBXBuildFile section */
 
@@ -48,6 +49,7 @@
 		4D6243CA20A018770082A9AA /* LivePhotoCell.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LivePhotoCell.swift; sourceTree = "<group>"; };
 		4D6243CC20A01DB40082A9AA /* Array+Extension.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Array+Extension.swift"; sourceTree = "<group>"; };
 		4D668EFC2095ABDC0007E599 /* LivePhotoGIF.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = LivePhotoGIF.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		4DB4294020C2A184001BFE01 /* LivePhotoDetailSelectButton.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LivePhotoDetailSelectButton.swift; sourceTree = "<group>"; };
 		53EFBF0021C0F1D88BCBC4BD /* Pods-LivePhotoGIF.debug.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-LivePhotoGIF.debug.xcconfig"; path = "Pods/Target Support Files/Pods-LivePhotoGIF/Pods-LivePhotoGIF.debug.xcconfig"; sourceTree = "<group>"; };
 		93AC5503A9786BE9E1BDF235 /* Pods-Gifely.debug.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-Gifely.debug.xcconfig"; path = "Pods/Target Support Files/Pods-Gifely/Pods-Gifely.debug.xcconfig"; sourceTree = "<group>"; };
 		BC7C150C5ED0DE542720623D /* Pods_LivePhotoGIF.framework */ = {isa = PBXFileReference; explicitFileType = wrapper.framework; includeInIndex = 0; path = Pods_LivePhotoGIF.framework; sourceTree = BUILT_PRODUCTS_DIR; };
@@ -105,6 +107,7 @@
 				4D6243CA20A018770082A9AA /* LivePhotoCell.swift */,
 				4D3B6CC2209EBCE1005F9573 /* LivePhotoDetailViewController.swift */,
 				4D6243C820A0184A0082A9AA /* LivePhotoFrameImageCell.swift */,
+				4DB4294020C2A184001BFE01 /* LivePhotoDetailSelectButton.swift */,
 			);
 			path = Sources;
 			sourceTree = "<group>";
@@ -267,7 +270,7 @@
 				"${BUILT_PRODUCTS_DIR}/RxGesture/RxGesture.framework",
 				"${BUILT_PRODUCTS_DIR}/RxSwift/RxSwift.framework",
 				"${BUILT_PRODUCTS_DIR}/SnapKit/SnapKit.framework",
-				"${BUILT_PRODUCTS_DIR}/SwiftyGif/SwiftyGif.framework",
+				"${BUILT_PRODUCTS_DIR}/SwiftyImage/SwiftyImage.framework",
 				"${BUILT_PRODUCTS_DIR}/Then/Then.framework",
 				"${BUILT_PRODUCTS_DIR}/nanopb/nanopb.framework",
 			);
@@ -281,7 +284,7 @@
 				"${TARGET_BUILD_DIR}/${FRAMEWORKS_FOLDER_PATH}/RxGesture.framework",
 				"${TARGET_BUILD_DIR}/${FRAMEWORKS_FOLDER_PATH}/RxSwift.framework",
 				"${TARGET_BUILD_DIR}/${FRAMEWORKS_FOLDER_PATH}/SnapKit.framework",
-				"${TARGET_BUILD_DIR}/${FRAMEWORKS_FOLDER_PATH}/SwiftyGif.framework",
+				"${TARGET_BUILD_DIR}/${FRAMEWORKS_FOLDER_PATH}/SwiftyImage.framework",
 				"${TARGET_BUILD_DIR}/${FRAMEWORKS_FOLDER_PATH}/Then.framework",
 				"${TARGET_BUILD_DIR}/${FRAMEWORKS_FOLDER_PATH}/nanopb.framework",
 			);
@@ -318,6 +321,7 @@
 				4D3B6CCA209EBCE2005F9573 /* String+Extension.swift in Sources */,
 				4D3B6CCB209EBCE2005F9573 /* UIScreen+Extension.swift in Sources */,
 				4D3B6CCD209EBCE2005F9573 /* ResourceManager.swift in Sources */,
+				4DB4294120C2A184001BFE01 /* LivePhotoDetailSelectButton.swift in Sources */,
 				4D6243CB20A018770082A9AA /* LivePhotoCell.swift in Sources */,
 				4D3B6CCF209EBCE2005F9573 /* LivePhotoDetailViewController.swift in Sources */,
 				4D3B6CC7209EBCE2005F9573 /* RootViewController.swift in Sources */,
@@ -466,10 +470,7 @@
 				CODE_SIGN_STYLE = Automatic;
 				DEVELOPMENT_TEAM = 4S8J2466NG;
 				INFOPLIST_FILE = "$(SRCROOT)/Info.plist";
-				LD_RUNPATH_SEARCH_PATHS = (
-					"$(inherited)",
-					"@executable_path/Frameworks",
-				);
+				LD_RUNPATH_SEARCH_PATHS = "$(inherited) @executable_path/Frameworks";
 				PRODUCT_BUNDLE_IDENTIFIER = kr.co.yongseongkim.LivePhotoGIF;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SWIFT_VERSION = 4.0;
@@ -486,10 +487,7 @@
 				CODE_SIGN_STYLE = Automatic;
 				DEVELOPMENT_TEAM = 4S8J2466NG;
 				INFOPLIST_FILE = "$(SRCROOT)/Info.plist";
-				LD_RUNPATH_SEARCH_PATHS = (
-					"$(inherited)",
-					"@executable_path/Frameworks",
-				);
+				LD_RUNPATH_SEARCH_PATHS = "$(inherited) @executable_path/Frameworks";
 				PRODUCT_BUNDLE_IDENTIFIER = kr.co.yongseongkim.LivePhotoGIF;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SWIFT_VERSION = 4.0;

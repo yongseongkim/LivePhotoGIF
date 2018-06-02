@@ -11,7 +11,7 @@ target 'LivePhotoGIF' do
   pod 'RxSwift'
   pod 'RxCocoa'
   pod 'RxGesture'
-  pod 'SwiftyGif'
+  pod 'SwiftyImage'
   
   # Report
   pod 'Firebase/Core'

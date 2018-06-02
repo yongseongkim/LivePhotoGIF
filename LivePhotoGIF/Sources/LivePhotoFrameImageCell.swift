@@ -8,6 +8,36 @@
 
 import UIKit
 
+class LivePhotoFramesBoundaryView: UIView {
+    static var width: CGFloat {
+        return 15
+    }
+    private let lineView = UIView()
+    override init(frame: CGRect) {
+        super.init(frame: frame)
+        backgroundColor = UIColor.gray145
+        isUserInteractionEnabled = false
+        lineView.layer.cornerRadius = 1.5
+        lineView.backgroundColor = UIColor.white
+        addSubview(lineView)
+        lineView.snp.makeConstraints { (make) in
+            make.centerX.equalTo(snp.centerX)
+            make.centerY.equalTo(snp.centerY)
+            make.width.equalTo(3)
+            make.height.equalTo(15)
+        }
+    }
+    
+    override func didMoveToSuperview() {
+        super.didMoveToSuperview()
+    }
+    
+    required init?(coder aDecoder: NSCoder) {
+        fatalError("init(coder:) has not been implemented")
+    }
+}
+
+
 class LivePhotoFrameImageCell: UICollectionViewCell {
     static var space: CGFloat {
         return 0
@@ -16,7 +46,7 @@ class LivePhotoFrameImageCell: UICollectionViewCell {
         return 8
     }
     static var size: CGSize {
-        let width = (LivePhotoDetailViewController.thumbnailCollectionWidth - (LivePhotoFrameImageCell.space * (LivePhotoFrameImageCell.numberOfCellInRow - 1))) / LivePhotoFrameImageCell.numberOfCellInRow
+        let width = floor((LivePhotoDetailViewController.thumbnailCollectionWidth - (LivePhotoFrameImageCell.space * (LivePhotoFrameImageCell.numberOfCellInRow - 1))) / LivePhotoFrameImageCell.numberOfCellInRow)
         return CGSize(width: width, height: width)
     }
     

@@ -13,14 +13,16 @@ import RxSwift
 import RxCocoa
 import RxGesture
 import AVKit
-import SwiftyGif
 
 class LivePhotoDetailViewController: UIViewController {
     static var contentWidth: CGFloat {
         return UIScreen.width * 0.95
     }
+    static var thumbnailViewWidth: CGFloat {
+        return LivePhotoDetailViewController.contentWidth
+    }
     static var thumbnailCollectionWidth: CGFloat {
-        return LivePhotoDetailViewController.contentWidth - 30
+        return LivePhotoDetailViewController.contentWidth - (LivePhotoFramesBoundaryView.width * 2)
     }
     static var patternList: [PlayPattern] {
         return [.forward, .backward, .forwardbackward, .backwardforward]
@@ -36,9 +38,8 @@ class LivePhotoDetailViewController: UIViewController {
         let duration: Double
         let pattern: PlayPattern
         let speed: Float
-        let quality: ImageQuality
         
-        init(images: [UIImage], duration: Double, pattern: PlayPattern, speed: Float, quality: ImageQuality) {
+        init(images: [UIImage], duration: Double, pattern: PlayPattern, speed: Float) {
             switch pattern {
             case .forward:
                 self.images = images
@@ -55,7 +56,6 @@ class LivePhotoDetailViewController: UIViewController {
             }
             self.pattern = pattern
             self.speed = speed
-            self.quality = quality
         }
     }
     
@@ -66,11 +66,12 @@ class LivePhotoDetailViewController: UIViewController {
     private let optionView = UIView()
     private let thumbnailView = UIView()
     private let thumbnailCollectionView = UICollectionView(frame: .zero, collectionViewLayout: UICollectionViewFlowLayout())
-    private let thumbnailStartView = UIView()
-    private let thumbnailEndView = UIView()
-    private let patternButton = UIButton()
-    private let speedButton = UIButton()
-    private let qualityButton = UIButton()
+    private let thumbnailStartView = LivePhotoFramesBoundaryView(frame: CGRect(x: 0, y: 0, width: LivePhotoFramesBoundaryView.width, height: LivePhotoFrameImageCell.size.height))
+    private let thumbnailEndView = LivePhotoFramesBoundaryView(frame: CGRect(x: 0, y: 0, width: LivePhotoFramesBoundaryView.width, height: LivePhotoFrameImageCell.size.height))
+    private let thumbnailDimView = UIView()
+    private let thumbnailDimLayer = CAShapeLayer()
+    private let patternButton = LivePhotoDetailSelectButton()
+    private let speedButton = LivePhotoDetailSelectButton()
     
     private let buttonsView = UIView()
     private let exportButton = UIButton()
@@ -113,11 +114,11 @@ class LivePhotoDetailViewController: UIViewController {
         super.viewDidAppear(animated)
         thumbnailStartView.frame = CGRect(x: 0,
                                           y: 0,
-                                          width: LivePhotoDetailViewController.thumbnailLineViewWidth,
+                                          width: LivePhotoFramesBoundaryView.width,
                                           height: LivePhotoFrameImageCell.size.height)
-        thumbnailEndView.frame = CGRect(x: thumbnailView.frame.width - LivePhotoDetailViewController.thumbnailLineViewWidth,
+        thumbnailEndView.frame = CGRect(x: thumbnailView.frame.width - LivePhotoFramesBoundaryView.width,
                                         y: 0,
-                                        width: LivePhotoDetailViewController.thumbnailLineViewWidth,
+                                        width: LivePhotoFramesBoundaryView.width,
                                         height: LivePhotoFrameImageCell.size.height)
     }
     
@@ -173,7 +174,7 @@ class LivePhotoDetailViewController: UIViewController {
         thumbnailView.snp.makeConstraints { (make) in
             make.top.equalTo(optionView).offset(8)
             make.centerX.equalTo(optionView.snp.centerX)
-            make.width.equalTo(LivePhotoDetailViewController.thumbnailCollectionWidth + 30)
+            make.width.equalTo(LivePhotoDetailViewController.thumbnailViewWidth)
             make.height.equalTo(LivePhotoFrameImageCell.size.height)
         }
         thumbnailView.addSubview(thumbnailCollectionView)
@@ -181,6 +182,7 @@ class LivePhotoDetailViewController: UIViewController {
         thumbnailCollectionView.delegate = self
         thumbnailCollectionView.allowsMultipleSelection = false
         thumbnailCollectionView.isScrollEnabled = false
+        thumbnailCollectionView.backgroundColor = UIColor.clear
         (thumbnailCollectionView.collectionViewLayout as? UICollectionViewFlowLayout)?.scrollDirection = .horizontal
         thumbnailCollectionView.register(LivePhotoFrameImageCell.self)
         thumbnailCollectionView.snp.makeConstraints { (make) in
@@ -189,45 +191,34 @@ class LivePhotoDetailViewController: UIViewController {
             make.width.equalTo(LivePhotoDetailViewController.thumbnailCollectionWidth)
             make.height.equalTo(LivePhotoFrameImageCell.size.height)
         }
-        thumbnailStartView.backgroundColor = UIColor.gray145
-        thumbnailStartView.isUserInteractionEnabled = false
+        thumbnailDimLayer.fillRule = kCAFillRuleEvenOdd;
+        thumbnailDimLayer.fillColor = UIColor.black.withAlphaComponent(0.5).cgColor
+        thumbnailDimView.layer.addSublayer(thumbnailDimLayer)
+        thumbnailView.addSubview(thumbnailDimView)
         thumbnailView.addSubview(thumbnailStartView)
-        thumbnailEndView.backgroundColor = UIColor.gray145
-        thumbnailEndView.isUserInteractionEnabled = false
         thumbnailView.addSubview(thumbnailEndView)
         
         optionView.addSubview(patternButton)
-        patternButton.setTitle(PlayPattern.forward.rawValue, for: .normal)
-        patternButton.setTitleColor(UIColor.black, for: .normal)
-        patternButton.setTitleColor(UIColor.gray220, for: .disabled)
+        patternButton.title = PlayPattern.forward.rawValue
+        patternButton.titleColor = UIColor.black
+        patternButton.disabledTitleColor = UIColor.gray220
         patternButton.contentHuggingPriority(for: .horizontal)
         patternButton.contentCompressionResistancePriority(for: .horizontal)
         patternButton.snp.makeConstraints { (make) in
             make.top.equalTo(thumbnailView.snp.bottom).offset(8)
             make.left.right.equalTo(optionView)
-            make.height.equalTo(36)
+            make.height.equalTo(44)
         }
         optionView.addSubview(speedButton)
-        speedButton.setTitle("1.0", for: .normal)
-        speedButton.setTitleColor(UIColor.black, for: .normal)
-        speedButton.setTitleColor(UIColor.gray220, for: .disabled)
+        speedButton.title = "1.0"
+        speedButton.titleColor = UIColor.black
+        speedButton.disabledTitleColor = UIColor.gray220
         speedButton.contentHuggingPriority(for: .horizontal)
         speedButton.contentCompressionResistancePriority(for: .horizontal)
         speedButton.snp.makeConstraints { (make) in
             make.top.equalTo(patternButton.snp.bottom)
-            make.left.right.equalTo(optionView)
-            make.height.equalTo(36)
-        }
-        optionView.addSubview(qualityButton)
-        qualityButton.setTitle(ImageQuality.high.rawValue, for: .normal)
-        qualityButton.setTitleColor(UIColor.black, for: .normal)
-        qualityButton.setTitleColor(UIColor.gray220, for: .disabled)
-        qualityButton.contentHuggingPriority(for: .horizontal)
-        qualityButton.contentCompressionResistancePriority(for: .horizontal)
-        qualityButton.snp.makeConstraints { (make) in
-            make.top.equalTo(speedButton.snp.bottom)
-            make.height.equalTo(36)
             make.left.right.bottom.equalTo(optionView)
+            make.height.equalTo(44)
         }
         
         buttonsView.addSubview(exportButton)
@@ -329,6 +320,18 @@ class LivePhotoDetailViewController: UIViewController {
                     self.imageView.stopAnimating()
                     self.imageView.image = self.images[imageIdx]
                 }
+                
+                let path = UIBezierPath(rect: CGRect(x: LivePhotoFramesBoundaryView.width,
+                                                     y: 0,
+                                                     width: LivePhotoDetailViewController.thumbnailCollectionWidth,
+                                                     height: LivePhotoFrameImageCell.size.height))
+                let transparentPath = UIBezierPath(rect: CGRect(x: self.thumbnailStartView.frame.maxX,
+                                                                y: 0,
+                                                                width: self.thumbnailEndView.frame.minX - self.thumbnailStartView.frame.maxX,
+                                                                height: LivePhotoFrameImageCell.size.height))
+                path.append(transparentPath)
+                path.usesEvenOddFillRule = true
+                self.thumbnailDimLayer.path = path.cgPath
             case .ended:
                 self.isStartDragging = false
                 self.isEndDragging = false
@@ -342,53 +345,56 @@ class LivePhotoDetailViewController: UIViewController {
                 self.exportResource.value = Resource(images: newImages,
                                                      duration: newDuration,
                                                      pattern: previousExportResource.pattern,
-                                                     speed: previousExportResource.speed,
-                                                     quality: previousExportResource.quality)
+                                                     speed: previousExportResource.speed)
             default:
                 self.isStartDragging = false
                 self.isEndDragging = false
                 break
             }
         }).disposed(by: disposeBag)
-        patternButton.rx.tap.subscribe(onNext: { [weak self] (_) in
+        patternButton.rx.leftTap.subscribe(onNext: { [weak self] (_) in
+            let patternList = LivePhotoDetailViewController.patternList
+            guard let `self` = self, let resource = self.exportResource.value else { return }
+            guard let patternIdx = patternList.index(of: resource.pattern) else { return }
+            let pattern = patternList[(patternIdx - 1 + patternList.count) % patternList.count]
+            self.patternButton.title = pattern.rawValue
+            self.exportResource.value = Resource(images: resource.images,
+                                                 duration: resource.duration,
+                                                 pattern: pattern,
+                                                 speed: resource.speed)
+        }).disposed(by: disposeBag)
+        patternButton.rx.rightTap.subscribe(onNext: { [weak self] (_) in
             let patternList = LivePhotoDetailViewController.patternList
             guard let `self` = self, let resource = self.exportResource.value else { return }
             guard let patternIdx = patternList.index(of: resource.pattern) else { return }
             let pattern = patternList[(patternIdx + 1) % patternList.count]
-            self.patternButton.setTitle(pattern.rawValue, for: .normal)
+            self.patternButton.title = pattern.rawValue
             self.exportResource.value = Resource(images: resource.images,
                                                  duration: resource.duration,
                                                  pattern: pattern,
-                                                 speed: resource.speed,
-                                                 quality: resource.quality)
+                                                 speed: resource.speed)
         }).disposed(by: disposeBag)
-        speedButton.rx.tap.subscribe(onNext: { [weak self] (_) in
+        speedButton.rx.leftTap.subscribe(onNext: { [weak self] (_) in
+            let speedList = LivePhotoDetailViewController.speedList
+            guard let `self` = self, let resource = self.exportResource.value else { return }
+            guard let speedIdx = speedList.index(of: resource.speed) else { return }
+            let speed = speedList[(speedIdx - 1 + speedList.count) % speedList.count]
+            self.speedButton.title = String(speed)
+            self.exportResource.value = Resource(images: resource.images,
+                                                 duration: resource.duration,
+                                                 pattern: resource.pattern,
+                                                 speed: speed)
+        }).disposed(by: disposeBag)
+        speedButton.rx.rightTap.subscribe(onNext: { [weak self] (_) in
             let speedList = LivePhotoDetailViewController.speedList
             guard let `self` = self, let resource = self.exportResource.value else { return }
             guard let speedIdx = speedList.index(of: resource.speed) else { return }
             let speed = speedList[(speedIdx + 1) % speedList.count]
-            self.speedButton.setTitle(String(speed), for: .normal)
+            self.speedButton.title = String(speed)
             self.exportResource.value = Resource(images: resource.images,
                                                  duration: resource.duration,
                                                  pattern: resource.pattern,
-                                                 speed: speed,
-                                                 quality: resource.quality)
-        }).disposed(by: disposeBag)
-        qualityButton.rx.tap.subscribe(onNext: { [weak self] (_) in
-            guard let `self` = self, let resource = self.exportResource.value else { return }
-            let quality: ImageQuality
-            switch resource.quality {
-            case .high:
-                quality = .low
-            case .low:
-                quality = .high
-            }
-            self.qualityButton.setTitle(quality.rawValue, for: .normal)
-            self.exportResource.value = Resource(images: resource.images,
-                                                 duration: resource.duration,
-                                                 pattern: resource.pattern,
-                                                 speed: resource.speed,
-                                                 quality: quality)
+                                                 speed: speed)
         }).disposed(by: disposeBag)
         exportButton.rx.tap.subscribe(onNext: { [weak self] (_) in
             guard let `self` = self, let resource = self.exportResource.value else { return }
@@ -399,7 +405,6 @@ class LivePhotoDetailViewController: UIViewController {
                                                         delayTime: duration / Float(resource.images.count),
                                                         loopCount: 0,
                                                         pattern: resource.pattern,
-                                                        quality: resource.quality,
                                                         detinationFileName: fileName)) { [weak self] (url, error) in
                                                             guard let url = url else { return }
                                                             let filePath = url.path
@@ -418,7 +423,7 @@ class LivePhotoDetailViewController: UIViewController {
                                                             } catch {
                                                                 print("Error: \(error)")
                                                             }
-
+                                                            
                                                             let items = [url]
                                                             let activityViewController = UIActivityViewController(activityItems: items, applicationActivities: nil)
                                                             self?.present(activityViewController, animated: true, completion: {
@@ -450,6 +455,15 @@ class LivePhotoDetailViewController: UIViewController {
             self.present(alert, animated: true, completion: nil)
             return
         }
+        let loadingView = UIActivityIndicatorView(activityIndicatorStyle: .white)
+        imageView.addSubview(loadingView)
+        loadingView.bringSubview(toFront: imageView)
+        loadingView.snp.makeConstraints { (make) in
+            make.width.height.equalTo(40)
+            make.centerX.equalTo(imageView.snp.centerX)
+            make.centerY.equalTo(imageView.snp.centerY)
+        }
+        loadingView.startAnimating()
         self.deactiveButtons()
         
         // load representative image
@@ -485,7 +499,7 @@ class LivePhotoDetailViewController: UIViewController {
         if let videoResource = videoResource {
             // load video file from live photo
             ResourceManager.rx
-                .extractImages(from: videoResource, quality: .high)
+                .extractImages(from: videoResource)
                 .subscribe(onNext: { [weak self] (state) in
                     guard let `self` = self else { return }
                     switch state {
@@ -500,8 +514,8 @@ class LivePhotoDetailViewController: UIViewController {
                         self.exportResource.value = Resource(images: images,
                                                              duration: Double(duration),
                                                              pattern: LivePhotoDetailViewController.patternList.first!,
-                                                             speed: LivePhotoDetailViewController.speedList.first!,
-                                                             quality: .high)
+                                                             speed: LivePhotoDetailViewController.speedList.first!)
+                        loadingView.removeFromSuperview()
                         self.activeButtons()
                     case .failure(let error):
                         print(error)
@@ -519,14 +533,12 @@ class LivePhotoDetailViewController: UIViewController {
     private func activeButtons() {
         patternButton.isEnabled = true
         speedButton.isEnabled = true
-        qualityButton.isEnabled = true
         exportButton.isEnabled = true
     }
     
     private func deactiveButtons() {
         patternButton.isEnabled = false
         speedButton.isEnabled = false
-        qualityButton.isEnabled = false
         exportButton.isEnabled = false
     }
 }
